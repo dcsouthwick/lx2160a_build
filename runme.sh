@@ -13,11 +13,12 @@ BUILDROOT_VERSION=2020.02.1
 ###############################################################################
 # Misc
 ###############################################################################
-: ${RELEASE:=LSDK-21.08}
+: ${RELEASE:=lf-6.1.1-1.0.0}
+#: ${RELEASE:=lf-5.15.71-2.2.0}
 : ${DDR_SPEED:=3200}
 : ${SERDES:=17_5_2}
 : ${UEFI_RELEASE:=RELEASE}
-: ${SHALLOW:=true}
+: ${SHALLOW:=false}
 : ${SECURE:=false}
 : ${ATF_DEBUG:=false}
 # Distribution for rootfs
@@ -231,11 +232,15 @@ for i in $QORIQ_COMPONENTS; do
 		echo "Cloing https://github.com/nxp-qoriq/$i release $RELEASE"
 		cd "$ROOTDIR"/build
 		CHECKOUT=$RELEASE
+		if [ "$i" == "mc-utils" ]; then
+			CHECKOUT="mc_release_10.36.0"
+		fi
 		git clone $SHALLOW_FLAG https://github.com/nxp-qoriq/${i}.git -b $CHECKOUT
 		cd $i
 		if [ "$i" == "atf" ]; then
+			# currently broken as of lf-5.15x release, copy fip_ddr_all.bin from previous build
 			cd "$ROOTDIR"/build/atf/tools/fiptool
-			git clone $SHALLOW_FLAG https://github.com/NXP/ddr-phy-binary.git
+			git clone $SHALLOW_FLAG https://github.com/nxp-qoriq/ddr-phy-binary.git -b $CHECKOUT
 			make
 			./fiptool create --ddr-immem-udimm-1d ddr-phy-binary/lx2160a/ddr4_pmu_train_imem.bin --ddr-immem-udimm-2d ddr-phy-binary/lx2160a/ddr4_2d_pmu_train_imem.bin --ddr-dmmem-udimm-1d ddr-phy-binary/lx2160a/ddr4_pmu_train_dmem.bin --ddr-dmmem-udimm-2d ddr-phy-binary/lx2160a/ddr4_2d_pmu_train_dmem.bin --ddr-immem-rdimm-1d ddr-phy-binary/lx2160a/ddr4_rdimm_pmu_train_imem.bin --ddr-immem-rdimm-2d ddr-phy-binary/lx2160a/ddr4_rdimm2d_pmu_train_imem.bin --ddr-dmmem-rdimm-1d ddr-phy-binary/lx2160a/ddr4_rdimm_pmu_train_dmem.bin --ddr-dmmem-rdimm-2d ddr-phy-binary/lx2160a/ddr4_rdimm2d_pmu_train_dmem.bin fip_ddr_all.bin
 		fi
@@ -253,6 +258,8 @@ for i in $QORIQ_COMPONENTS; do
 		fi
 	fi
 done
+
+exit 0
 
 if [[ ! -f $ROOTDIR/build/ubuntu-core.ext4 ]] && [ "$DISTRO" == "ubuntu" ]; then
 	if [[ $UBUNTU_VERSION == focal ]]; then
